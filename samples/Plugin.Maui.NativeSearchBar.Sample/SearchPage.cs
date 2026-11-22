@@ -85,6 +85,11 @@ public class SearchPage : ContentPage, IQueryAttributable
 			_searchBar.IosPlacement = value;
 		}
 
+		if (query.TryGetValue("activate", out var activate))
+		{
+			_searchBar.ActivatesOnAppearing = activate?.ToString() == "true";
+		}
+
 		if (query.TryGetValue("tabbar", out var tabbar))
 		{
 			Shell.SetTabBarIsVisible(this, tabbar?.ToString() == "true");

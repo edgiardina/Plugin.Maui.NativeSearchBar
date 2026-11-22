@@ -17,6 +17,7 @@ public class HomePage : ContentPage
 				Button("Search (bottom, tab bar hidden)", () => Shell.Current.GoToAsync("search?placement=Bottom&tabbar=false")),
 				Button("Search (bottom, tab bar visible)", () => Shell.Current.GoToAsync("search?placement=Bottom&tabbar=true")),
 				Button("Search (top)", () => Shell.Current.GoToAsync("search?placement=Top&tabbar=true")),
+				Button("Search (nav bar button, auto-activate)", () => Shell.Current.GoToAsync("search?placement=NavigationBarButton&tabbar=true&activate=true")),
 				Button("Search (modal NavigationPage)", () => Navigation.PushModalAsync(new NavigationPage(new SearchPage(IosSearchBarPlacement.Bottom, showClose: false, closeToolbarItem: true)))),
 				Button("Search (modal, no navigation)", () => Navigation.PushModalAsync(new SearchPage(IosSearchBarPlacement.Bottom, showClose: true))),
 			},

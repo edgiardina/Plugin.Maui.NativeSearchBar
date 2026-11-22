@@ -51,7 +51,7 @@ public partial class NativeSearchBarHandler
 	void OnEditorAction(object? sender, global::Android.Widget.TextView.EditorActionEventArgs e)
 	{
 		var isSearch = e.ActionId == ImeAction.Search
-			|| (e.Event is { KeyCode: Keycode.Enter, Action: KeyEventActions.Down });
+			|| (e.Event is not null && e.Event.KeyCode == Keycode.Enter && e.Event.Action == KeyEventActions.Down);
 
 		if (!isSearch)
 		{

@@ -3,7 +3,8 @@
 A .NET MAUI search bar that uses the search UI of each platform.
 
 - **iOS 26+ on iPhone**: The search field floats in the bottom toolbar, like Mail. When the user taps it, it moves up and docks above the keyboard.
-- **Earlier iOS versions, iPad, and Mac Catalyst**: The search field is in the navigation bar, below the title.
+- **iOS 26+ where the toolbar is not available** (a visible tab bar, iPad, `NavigationPage`): A search button in the navigation bar. When the user taps it, the field expands in the same bar.
+- **Earlier iOS versions and Mac Catalyst**: The search field is in the navigation bar, below the title.
 - **Android**: A Material 3 search bar. It is a 56dp pill with a search icon and a clear button.
 
 The view takes no space in the page layout on iOS, because the navigation item owns the field. Put the results in the page as usual, for example in a `CollectionView`.
@@ -44,7 +45,8 @@ builder
 | `Placeholder` | The hint text in the empty field. |
 | `SearchCommand`, `SearchCommandParameter` | The command that runs when the user taps the search key on the keyboard. |
 | `IsTextPredictionEnabled` | Set to `False` to turn off autocorrect and suggestions. Use this for names. |
-| `IosPlacement` | `Bottom` (default) or `Top`. Android ignores this property. |
+| `IosPlacement` | `Bottom` (default), `NavigationBarButton`, or `Top`. Android ignores this property. |
+| `ActivatesOnAppearing` | Set to `True` to start the search and show the keyboard the first time the page opens. Use this on pages that only do search. |
 
 | Event | Description |
 | --- | --- |
@@ -61,11 +63,12 @@ The plugin puts a `UISearchController` on the navigation item of the page. The p
 
 1. If the page is not in a `Shell` or a `NavigationPage`, the plugin shows an inline `UISearchBar` in the layout.
 2. If `IosPlacement` is `Bottom`, the device is an iPhone with iOS 26 or later, the page is in a `Shell`, and no tab bar shows, the field goes into the bottom toolbar. The plugin shows the toolbar of the navigation controller while the page is visible. It hides the toolbar again when the page disappears.
-3. In all other conditions, the field goes below the title in the navigation bar.
+3. If `IosPlacement` is `Top`, or the iOS version is earlier than 26, the field goes below the title in the navigation bar.
+4. In all other conditions, the navigation bar shows a search button. The field expands into the navigation bar when the user taps the button.
 
-A visible tab bar floats over the bottom toolbar. Thus, the plugin moves the field to the top when a tab bar shows. To get the bottom field on a page in a tab, set `Shell.TabBarIsVisible="False"` on the page.
+A visible tab bar floats over the bottom toolbar. Thus, the plugin uses the navigation bar button when a tab bar shows. To get the bottom field on a page in a tab, set `Shell.TabBarIsVisible="False"` on the page.
 
-A page in a `NavigationPage` always gets the field at the top. The `NavigationPage` renderer copies the toolbar items of the page into its own toolbar, and that toolbar fails on the search item.
+A page in a `NavigationPage` never gets the bottom field. The `NavigationPage` renderer copies the toolbar items of the page into its own toolbar, and that toolbar fails on the search item.
 
 Do not use a Shell `SearchHandler` on the same page. Both use the same navigation item.
 

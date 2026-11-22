@@ -31,6 +31,9 @@ public class NativeSearchBar : View
 	public static readonly BindableProperty IsTextPredictionEnabledProperty = BindableProperty.Create(
 		nameof(IsTextPredictionEnabled), typeof(bool), typeof(NativeSearchBar), true);
 
+	public static readonly BindableProperty ActivatesOnAppearingProperty = BindableProperty.Create(
+		nameof(ActivatesOnAppearing), typeof(bool), typeof(NativeSearchBar), false);
+
 	public static readonly BindableProperty IosPlacementProperty = BindableProperty.Create(
 		nameof(IosPlacement), typeof(IosSearchBarPlacement), typeof(NativeSearchBar), IosSearchBarPlacement.Bottom);
 
@@ -68,13 +71,68 @@ public class NativeSearchBar : View
 	}
 
 	/// <summary>
-	/// Where the field goes on iOS. <see cref="IosSearchBarPlacement.Bottom"/> uses the bottom toolbar
-	/// on iOS 26+ iPhone and falls back to the top elsewhere. Ignored on Android.
+	/// Where the field goes on iOS. See <see cref="IosSearchBarPlacement"/>. Ignored on Android.
 	/// </summary>
 	public IosSearchBarPlacement IosPlacement
 	{
 		get => (IosSearchBarPlacement)GetValue(IosPlacementProperty);
 		set => SetValue(IosPlacementProperty, value);
+	}
+
+	/// <summary>
+	/// Starts the search and shows the keyboard the first time the page is navigated to,
+	/// like a search tab does. Use it on pages whose only job is search.
+	/// </summary>
+	public bool ActivatesOnAppearing
+	{
+		get => (bool)GetValue(ActivatesOnAppearingProperty);
+		set => SetValue(ActivatesOnAppearingProperty, value);
+	}
+
+	Page? _page;
+	bool _hasActivated;
+
+	public NativeSearchBar()
+	{
+		Loaded += OnLoaded;
+		Unloaded += OnUnloaded;
+	}
+
+	void OnLoaded(object? sender, EventArgs e)
+	{
+		Element? element = Parent;
+		while (element is not null and not Page)
+		{
+			element = element.Parent;
+		}
+
+		if (element is Page page && page != _page)
+		{
+			OnUnloaded(sender, e);
+			_page = page;
+			_page.NavigatedTo += OnPageNavigatedTo;
+		}
+	}
+
+	void OnUnloaded(object? sender, EventArgs e)
+	{
+		if (_page is not null)
+		{
+			_page.NavigatedTo -= OnPageNavigatedTo;
+			_page = null;
+		}
+	}
+
+	// NavigatedTo fires once the push animation is done, which is when iOS will accept
+	// activating a search controller. Only the first time: coming back from a result
+	// shouldn't pop the keyboard up again.
+	void OnPageNavigatedTo(object? sender, NavigatedToEventArgs e)
+	{
+		if (ActivatesOnAppearing && !_hasActivated)
+		{
+			_hasActivated = true;
+			Focus();
+		}
 	}
 
 	public event EventHandler<TextChangedEventArgs>? TextChanged;
@@ -95,9 +153,18 @@ public class NativeSearchBar : View
 
 public enum IosSearchBarPlacement
 {
-	/// <summary>Bottom toolbar on iOS 26+ iPhone, docked to the keyboard while editing. Top elsewhere.</summary>
+	/// <summary>
+	/// Bottom toolbar on iOS 26+ iPhone, docked to the keyboard while editing. Where the toolbar isn't
+	/// available (a visible tab bar, iPad, NavigationPage) it falls back to <see cref="NavigationBarButton"/>.
+	/// </summary>
 	Bottom,
 
-	/// <summary>Always under the navigation bar title.</summary>
+	/// <summary>A field under the navigation bar title, always visible.</summary>
 	Top,
+
+	/// <summary>
+	/// On iOS 26+, a search button in the navigation bar that expands into a field in the same bar.
+	/// Earlier versions use <see cref="Top"/>.
+	/// </summary>
+	NavigationBarButton,
 }

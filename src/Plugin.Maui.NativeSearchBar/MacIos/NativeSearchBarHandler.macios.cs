@@ -32,8 +32,14 @@ public partial class NativeSearchBarHandler
 	bool IsMauiNavigationPage =>
 		_host?.NavigationController is Microsoft.Maui.Controls.Handlers.Compatibility.NavigationRenderer;
 
-	bool IsTabBarVisible =>
-		_host?.TabBarController is { TabBar.Hidden: false } && !_host.HidesBottomBarWhenPushed;
+	bool IsTabBarVisible
+	{
+		get
+		{
+			var tabBarController = _host?.TabBarController;
+			return tabBarController is not null && !tabBarController.TabBar.Hidden && !_host!.HidesBottomBarWhenPushed;
+		}
+	}
 
 	protected override SearchBarContainer CreatePlatformView() => new();
 
@@ -122,7 +128,9 @@ public partial class NativeSearchBarHandler
 
 	void Attach()
 	{
-		if (_searchController is null || _page?.Handler is not IPlatformViewHandler { ViewController: { } pageController })
+		var pageController = (_page?.Handler as IPlatformViewHandler)?.ViewController;
+
+		if (_searchController is null || pageController is null)
 		{
 			return;
 		}
@@ -165,12 +173,22 @@ public partial class NativeSearchBarHandler
 			item.SearchBarPlacementAllowsToolbarIntegration = true;
 
 			// UIKit only moves the field into a toolbar that has items, and this item marks its slot
-			if (_host.ToolbarItems is not { Length: > 0 })
+			if (_host.ToolbarItems is null || _host.ToolbarItems.Length == 0)
 			{
 				_host.SetToolbarItems([item.SearchBarPlacementBarButtonItem], false);
 			}
 
 			ShowToolbar();
+		}
+		else if (VirtualView?.IosPlacement != IosSearchBarPlacement.Top && OperatingSystem.IsIOSVersionAtLeast(26))
+		{
+			// A magnifier button in the navigation bar that expands into a field in the same bar.
+			// This is also where Bottom ends up when it can't use the toolbar, since the stacked
+			// field reads as a separate band between the title and the content.
+			item.SearchBarPlacementAllowsToolbarIntegration = false;
+			item.PreferredSearchBarPlacement = UINavigationItemSearchBarPlacement.IntegratedButton;
+			RemoveOurToolbarItem();
+			HideToolbarIfOurs();
 		}
 		else
 		{
@@ -184,7 +202,25 @@ public partial class NativeSearchBarHandler
 				item.PreferredSearchBarPlacement = UINavigationItemSearchBarPlacement.Stacked;
 			}
 
+			RemoveOurToolbarItem();
 			HideToolbarIfOurs();
+		}
+	}
+
+	void RemoveOurToolbarItem()
+	{
+		if (_host is null || !OperatingSystem.IsIOSVersionAtLeast(26))
+		{
+			return;
+		}
+
+		// Only clear the toolbar if the search slot we added is the only thing in it
+		var items = _host.ToolbarItems;
+		var searchItem = _host.NavigationItem.SearchBarPlacementBarButtonItem;
+
+		if (items is not null && items.Length == 1 && items[0] == searchItem)
+		{
+			_host.SetToolbarItems(null, false);
 		}
 	}
 
@@ -215,9 +251,9 @@ public partial class NativeSearchBarHandler
 	{
 		var current = pageController;
 
-		while (current.ParentViewController is { } parent and not UINavigationController)
+		while (current.ParentViewController is not null && current.ParentViewController is not UINavigationController)
 		{
-			current = parent;
+			current = current.ParentViewController;
 		}
 
 		return current.ParentViewController is UINavigationController ? current : pageController;
