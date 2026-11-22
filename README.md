@@ -5,9 +5,9 @@ A .NET MAUI search bar that uses the search UI of each platform.
 - **iOS 26+ on iPhone**: The search field floats in the bottom toolbar, like Mail. When the user taps it, it moves up and docks above the keyboard.
 - **iOS 26+ where the toolbar is not available** (a visible tab bar, iPad, `NavigationPage`): A search button in the navigation bar. When the user taps it, the field expands in the same bar.
 - **Earlier iOS versions and Mac Catalyst**: The search field is in the navigation bar, below the title.
-- **Android**: A Material 3 search bar. It is a 56dp pill with a search icon and a clear button.
+- **Android**: A Material 3 search bar in the top app bar, in place of the page title. It is a pill with a search icon and a clear button.
 
-The view takes no space in the page layout on iOS, because the navigation item owns the field. Put the results in the page as usual, for example in a `CollectionView`.
+On both platforms the view takes no space in the page layout when the field is in the navigation bar or app bar. Put the results in the page as usual, for example in a `CollectionView`.
 
 ## Install
 
@@ -26,14 +26,13 @@ builder
 ## Use
 
 ```xml
-<ContentPage xmlns:nsb="clr-namespace:Plugin.Maui.NativeSearchBar;assembly=Plugin.Maui.NativeSearchBar"
-             Shell.TabBarIsVisible="False">
+<ContentPage xmlns:nsb="clr-namespace:Plugin.Maui.NativeSearchBar;assembly=Plugin.Maui.NativeSearchBar">
     <Grid RowDefinitions="Auto,*">
         <nsb:NativeSearchBar Text="{Binding SearchText}"
                              Placeholder="Search players"
                              SearchCommand="{Binding SearchCommand}"
                              IsTextPredictionEnabled="False"
-                             Margin="{OnPlatform Android='16,8', Default=0}" />
+                             ActivatesOnAppearing="True" />
         <CollectionView Grid.Row="1" ItemsSource="{Binding Results}" />
     </Grid>
 </ContentPage>
@@ -45,6 +44,7 @@ builder
 | `Placeholder` | The hint text in the empty field. |
 | `SearchCommand`, `SearchCommandParameter` | The command that runs when the user taps the search key on the keyboard. |
 | `IsTextPredictionEnabled` | Set to `False` to turn off autocorrect and suggestions. Use this for names. |
+| `AndroidPlacement` | `AppBar` (default) or `Inline`. iOS ignores this property. |
 | `IosPlacement` | `Bottom` (default), `NavigationBarButton`, or `Top`. Android ignores this property. |
 | `ActivatesOnAppearing` | Set to `True` to start the search and show the keyboard the first time the page opens. Use this on pages that only do search. |
 
@@ -73,6 +73,8 @@ A page in a `NavigationPage` never gets the bottom field. The `NavigationPage` r
 Do not use a Shell `SearchHandler` on the same page. Both use the same navigation item.
 
 ## Android notes
+
+With `AppBar` placement, the plugin sets a bound copy of the search bar as the `Shell.TitleView` (or `NavigationPage.TitleView`) of the page. The original view stays in the layout with zero size. Bindings, the command, and the events stay on the view that you declare. If the page already has a title view, or has no app bar, the bar stays inline in the layout.
 
 Material 3 puts search at the top of the screen. The plugin does not open a full-screen `SearchView`. The user types in the pill, and the page shows the results.
 

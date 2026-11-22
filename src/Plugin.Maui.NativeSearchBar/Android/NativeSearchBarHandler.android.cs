@@ -18,13 +18,28 @@ public partial class NativeSearchBarHandler
 		platformView.EditText.TextChanged += OnTextChanged;
 		platformView.EditText.EditorAction += OnEditorAction;
 		platformView.ClearButton.Click += OnClearClicked;
+
+		if (VirtualView.IsAppBarCopy)
+		{
+			platformView.Compact = true;
+		}
+		else
+		{
+			VirtualView.TryMoveToAppBar();
+		}
 	}
+
+	// When a copy of the bar lives in the app bar, this one stays in the page with no size
+	public override Size GetDesiredSize(double widthConstraint, double heightConstraint) =>
+		VirtualView?.AppBarCopy is not null ? Size.Zero : base.GetDesiredSize(widthConstraint, heightConstraint);
 
 	protected override void DisconnectHandler(MaterialSearchBarView platformView)
 	{
 		platformView.EditText.TextChanged -= OnTextChanged;
 		platformView.EditText.EditorAction -= OnEditorAction;
 		platformView.ClearButton.Click -= OnClearClicked;
+
+		VirtualView?.RemoveFromAppBar();
 
 		base.DisconnectHandler(platformView);
 	}
@@ -112,10 +127,27 @@ public partial class NativeSearchBarHandler
 
 	static void MapFocus(NativeSearchBarHandler handler, NativeSearchBar view, object? args)
 	{
-		handler.PlatformView.FocusAndShowKeyboard();
+		if (view.AppBarCopy is not null)
+		{
+			view.AppBarCopy.Focus();
+		}
+		else
+		{
+			handler.PlatformView.FocusAndShowKeyboard();
+		}
+
 		CompleteFocusRequest(args, true);
 	}
 
-	static void MapUnfocus(NativeSearchBarHandler handler, NativeSearchBar view, object? args) =>
-		handler.PlatformView.HideKeyboard();
+	static void MapUnfocus(NativeSearchBarHandler handler, NativeSearchBar view, object? args)
+	{
+		if (view.AppBarCopy is not null)
+		{
+			view.AppBarCopy.Unfocus();
+		}
+		else
+		{
+			handler.PlatformView.HideKeyboard();
+		}
+	}
 }

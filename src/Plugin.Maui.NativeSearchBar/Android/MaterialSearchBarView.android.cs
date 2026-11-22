@@ -74,6 +74,12 @@ public class MaterialSearchBarView : LinearLayout
 		Click += (_, _) => FocusAndShowKeyboard();
 	}
 
+	/// <summary>
+	/// Sizes the pill for the top app bar (48dp) instead of the page (56dp), so it fits inside
+	/// the toolbar with some room above and below.
+	/// </summary>
+	public bool Compact { get; set; }
+
 	public ImageView SearchIcon { get; }
 
 	public AppCompatEditText EditText { get; }
@@ -114,7 +120,7 @@ public class MaterialSearchBarView : LinearLayout
 		}
 
 		// M3 search bars are 56dp tall. Not SetMinimumHeight: MAUI's MinimumHeightRequest mapping resets it.
-		var height = Dp(56);
+		var height = Dp(Compact ? 48 : 56);
 		if (MeasureSpec.GetMode(heightMeasureSpec) != MeasureSpecMode.Exactly)
 		{
 			heightMeasureSpec = MeasureSpec.MakeMeasureSpec(height, MeasureSpecMode.Exactly);

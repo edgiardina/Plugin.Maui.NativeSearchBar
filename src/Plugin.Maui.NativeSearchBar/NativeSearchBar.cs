@@ -37,6 +37,121 @@ public class NativeSearchBar : View
 	public static readonly BindableProperty IosPlacementProperty = BindableProperty.Create(
 		nameof(IosPlacement), typeof(IosSearchBarPlacement), typeof(NativeSearchBar), IosSearchBarPlacement.Bottom);
 
+	public static readonly BindableProperty AndroidPlacementProperty = BindableProperty.Create(
+		nameof(AndroidPlacement), typeof(AndroidSearchBarPlacement), typeof(NativeSearchBar), AndroidSearchBarPlacement.AppBar);
+
+	/// <summary>
+	/// Where the field goes on Android. <see cref="AndroidSearchBarPlacement.AppBar"/> replaces the
+	/// page title in the top app bar. Ignored on iOS.
+	/// </summary>
+	public AndroidSearchBarPlacement AndroidPlacement
+	{
+		get => (AndroidSearchBarPlacement)GetValue(AndroidPlacementProperty);
+		set => SetValue(AndroidPlacementProperty, value);
+	}
+
+	// The copy of this bar that sits in the app bar as the page's TitleView, and the flag that marks
+	// a bar as being that copy. The original stays in the page with zero size and forwards to it.
+	internal NativeSearchBar? AppBarCopy { get; private set; }
+
+	internal bool IsAppBarCopy { get; private init; }
+
+	Page? _titleViewPage;
+
+	/// <summary>
+	/// Puts a bound copy of this bar into the page's title view. Returns false when the page isn't in
+	/// a Shell or NavigationPage, or already has a title view of its own.
+	/// </summary>
+	internal bool TryMoveToAppBar()
+	{
+		if (IsAppBarCopy || AppBarCopy is not null)
+		{
+			return AppBarCopy is not null;
+		}
+
+		if (AndroidPlacement != AndroidSearchBarPlacement.AppBar)
+		{
+			return false;
+		}
+
+		var page = FindPage();
+		if (page is null)
+		{
+			return false;
+		}
+
+		var inShell = false;
+		var inNavigationPage = false;
+		for (Element? element = page.Parent; element is not null; element = element.Parent)
+		{
+			inShell |= element is Shell;
+			inNavigationPage |= element is NavigationPage;
+		}
+
+		if (inShell && Shell.GetTitleView(page) is null)
+		{
+			Shell.SetTitleView(page, CreateAppBarCopy());
+		}
+		else if (!inShell && inNavigationPage && NavigationPage.GetTitleView(page) is null)
+		{
+			NavigationPage.SetTitleView(page, CreateAppBarCopy());
+		}
+		else
+		{
+			return false;
+		}
+
+		_titleViewPage = page;
+		InvalidateMeasure();
+		return true;
+	}
+
+	NativeSearchBar CreateAppBarCopy()
+	{
+		// The toolbar gives the title view its full height and runs it to the edge, so inset it
+		var copy = new NativeSearchBar { IsAppBarCopy = true, Margin = new Thickness(0, 6, 12, 6) };
+		copy.SetBinding(TextProperty, new Binding(nameof(Text), BindingMode.TwoWay, source: this));
+		copy.SetBinding(PlaceholderProperty, new Binding(nameof(Placeholder), source: this));
+		copy.SetBinding(IsTextPredictionEnabledProperty, new Binding(nameof(IsTextPredictionEnabled), source: this));
+		copy.SetBinding(BackgroundProperty, new Binding(nameof(Background), source: this));
+
+		// The command and events stay on this bar, so callers only ever deal with the one they declared
+		copy.SearchButtonPressed += (_, _) => SendSearchButtonPressed();
+
+		AppBarCopy = copy;
+		return copy;
+	}
+
+	internal void RemoveFromAppBar()
+	{
+		if (_titleViewPage is not null && AppBarCopy is not null)
+		{
+			if (Shell.GetTitleView(_titleViewPage) == AppBarCopy)
+			{
+				Shell.SetTitleView(_titleViewPage, null);
+			}
+
+			if (NavigationPage.GetTitleView(_titleViewPage) == AppBarCopy)
+			{
+				NavigationPage.SetTitleView(_titleViewPage, null);
+			}
+		}
+
+		AppBarCopy = null;
+		_titleViewPage = null;
+	}
+
+	Page? FindPage()
+	{
+		Element? element = Parent;
+		while (element is not null && element is not Page)
+		{
+			element = element.Parent;
+		}
+
+		return element as Page;
+	}
+
 	/// <summary>The search text. Two-way by default.</summary>
 	public string Text
 	{
@@ -100,13 +215,7 @@ public class NativeSearchBar : View
 
 	void OnLoaded(object? sender, EventArgs e)
 	{
-		Element? element = Parent;
-		while (element is not null and not Page)
-		{
-			element = element.Parent;
-		}
-
-		if (element is Page page && page != _page)
+		if (FindPage() is Page page && page != _page)
 		{
 			OnUnloaded(sender, e);
 			_page = page;
@@ -149,6 +258,18 @@ public class NativeSearchBar : View
 			SearchCommand.Execute(SearchCommandParameter);
 		}
 	}
+}
+
+public enum AndroidSearchBarPlacement
+{
+	/// <summary>
+	/// In the top app bar in place of the title (Material 3's search bar as the app bar).
+	/// Falls back to <see cref="Inline"/> when the page has no app bar or its own title view.
+	/// </summary>
+	AppBar,
+
+	/// <summary>Where the view is in the page layout.</summary>
+	Inline,
 }
 
 public enum IosSearchBarPlacement
