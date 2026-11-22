@@ -24,7 +24,13 @@ public partial class NativeSearchBarHandler
 		VirtualView?.IosPlacement == IosSearchBarPlacement.Bottom
 		&& OperatingSystem.IsIOSVersionAtLeast(26)
 		&& UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Phone
-		&& !IsTabBarVisible;
+		&& !IsTabBarVisible
+		&& !IsMauiNavigationPage;
+
+	// NavigationPage's renderer copies the page controller's toolbarItems into its own
+	// SecondaryToolbar, which crashes on any item without a CustomView. Shell doesn't do that.
+	bool IsMauiNavigationPage =>
+		_host?.NavigationController is Microsoft.Maui.Controls.Handlers.Compatibility.NavigationRenderer;
 
 	bool IsTabBarVisible =>
 		_host?.TabBarController is { TabBar.Hidden: false } && !_host.HidesBottomBarWhenPushed;

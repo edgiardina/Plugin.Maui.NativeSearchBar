@@ -22,9 +22,14 @@ public class SearchPage : ContentPage, IQueryAttributable
 	{
 	}
 
-	public SearchPage(IosSearchBarPlacement placement, bool showClose)
+	public SearchPage(IosSearchBarPlacement placement, bool showClose, bool closeToolbarItem = false)
 	{
 		Title = "Search";
+
+		if (closeToolbarItem)
+		{
+			ToolbarItems.Add(new ToolbarItem("Done", null, async () => await Navigation.PopModalAsync()));
+		}
 
 		_searchBar = new NativeSearchBar
 		{

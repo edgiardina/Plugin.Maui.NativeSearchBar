@@ -60,10 +60,12 @@ On Android, `BackgroundColor` sets the color of the pill.
 The plugin puts a `UISearchController` on the navigation item of the page. The placement follows these rules:
 
 1. If the page is not in a `Shell` or a `NavigationPage`, the plugin shows an inline `UISearchBar` in the layout.
-2. If `IosPlacement` is `Bottom`, the device is an iPhone with iOS 26 or later, and no tab bar shows, the field goes into the bottom toolbar. The plugin shows the toolbar of the navigation controller while the page is visible. It hides the toolbar again when the page disappears.
+2. If `IosPlacement` is `Bottom`, the device is an iPhone with iOS 26 or later, the page is in a `Shell`, and no tab bar shows, the field goes into the bottom toolbar. The plugin shows the toolbar of the navigation controller while the page is visible. It hides the toolbar again when the page disappears.
 3. In all other conditions, the field goes below the title in the navigation bar.
 
 A visible tab bar floats over the bottom toolbar. Thus, the plugin moves the field to the top when a tab bar shows. To get the bottom field on a page in a tab, set `Shell.TabBarIsVisible="False"` on the page.
+
+A page in a `NavigationPage` always gets the field at the top. The `NavigationPage` renderer copies the toolbar items of the page into its own toolbar, and that toolbar fails on the search item.
 
 Do not use a Shell `SearchHandler` on the same page. Both use the same navigation item.
 
